@@ -1,6 +1,7 @@
 using System.DirectoryServices.Protocols;
 using System.Net;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using LdapSync.Domain.Entities;
 using LdapSync.Domain.Interfaces;
 
@@ -26,7 +27,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.ServerCertificateValidationCallback += (_, _) => true;
+                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -60,7 +61,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.ServerCertificateValidationCallback += (_, _) => true;
+                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -115,7 +116,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.ServerCertificateValidationCallback += (_, _) => true;
+                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
