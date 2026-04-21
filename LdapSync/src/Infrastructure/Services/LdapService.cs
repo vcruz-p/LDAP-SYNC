@@ -66,7 +66,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
+                ldap.SessionOptions.VerifyCertificate += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
