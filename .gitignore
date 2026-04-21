@@ -1,4 +1,4 @@
-```
+```gitignore
 # Build artifacts
 bin/
 obj/
@@ -7,21 +7,12 @@ obj/
 *.pdb
 *.so
 *.dylib
-*.jar
-*.war
 *.class
-*.o
-*.obj
-*.out
 
 # Dependencies
 packages/
 node_modules/
-venv/
-.venv/
-.env
-.env.local
-.env.*
+.nuget/
 
 # Logs
 *.log
@@ -30,28 +21,24 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Environment specific
+.env
+.env.local
+*.env.*
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Test and coverage
+# Testing
+TestResults/
 coverage/
-htmlcov/
-.coverage
-*.tmp
+*.coverage
 
 # Distribution
 dist/
 build/
 target/
-
-# Python specific
-__pycache__/
-*.pyc
-*.pyo
-.Python
-*.so
-*.egg-info/
 ```
