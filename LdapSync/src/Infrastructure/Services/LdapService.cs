@@ -269,4 +269,197 @@ public class LdapService : ILdapService
             SyncedAt = DateTime.UtcNow
         };
     }
+
+    public async Task<(SyncConfiguration Config, IEnumerable<string> Ous)> ExtractPoliciesAndOusFromLdapAsync(LdapServer server)
+    {
+        var ous = new HashSet<string>();
+        var config = new SyncConfiguration
+        {
+            ServerId = server.Id,
+            Enabled = false,
+            CronSchedule = "0 2 * * *",
+            SyncMode = "full",
+            SyncUsers = true,
+            SyncGroups = true,
+            SyncMemberships = true,
+            SyncPasswords = false,
+            SyncPasswordPolicies = false,
+            ForcePasswordResetDays = null,
+            DeactivateOrphanUsers = true,
+            DeleteOrphanGroups = false,
+            PageSize = 500,
+            MaxEntries = 0,
+            SearchBase = server.BaseDn,
+            ExcludedAttributes = null
+        };
+
+        try
+        {
+            var identifier = new LdapDirectoryIdentifier(server.Host, server.Port);
+            var credential = new NetworkCredential(server.BindDn, server.BindPassword);
+            
+            using var ldap = new LdapConnection(identifier, credential);
+            ldap.SessionOptions.ProtocolVersion = 3;
+            ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
+            
+            if (server.UseTls)
+            {
+                ldap.SessionOptions.StartTransportLayerSecurity(null);
+            }
+            
+            ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
+            
+            await Task.Run(() => ldap.Bind());
+
+            // Extraer todas las Unidades Organizativas (OUs)
+            var ouSearchRequest = new SearchRequest(
+                server.BaseDn,
+                "(objectClass=organizationalUnit)",
+                SearchScope.Subtree,
+                "ou", "distinguishedName"
+            );
+            
+            var ouSearchResponse = await Task.Run(() => (SearchResponse)ldap.SendRequest(ouSearchRequest));
+            
+            foreach (SearchResultEntry entry in ouSearchResponse.Entries)
+            {
+                if (entry.Attributes.Contains("ou") && entry.Attributes["ou"].Count > 0)
+                {
+                    var ouName = entry.Attributes["ou"][0]?.ToString() ?? string.Empty;
+                    if (!string.IsNullOrEmpty(ouName))
+                    {
+                        ous.Add(entry.DistinguishedName);
+                    }
+                }
+            }
+
+            // Extraer políticas de seguridad desde el servidor LDAP
+            // Buscar entradas de pwdPolicy o similar
+            var policySearchRequest = new SearchRequest(
+                server.BaseDn,
+                "(|(objectClass=pwdPolicy)(objectClass=pwdPolicyElement)(objectClass=device))",
+                SearchScope.Subtree,
+                "pwdAttribute", "pwdMinLength", "pwdCheckQuality", "pwdInHistory", 
+                "pwdMaxAge", "pwdExpireWarning", "pwdFailureCountInterval", 
+                "pwdLockout", "pwdLockoutDuration", "passwordGraceLimit"
+            );
+            
+            try
+            {
+                var policySearchResponse = await Task.Run(() => (SearchResponse)ldap.SendRequest(policySearchRequest));
+                
+                int? minLength = null;
+                int? historyCount = null;
+                int? maxAgeDays = null;
+                int? warningDays = null;
+                bool lockoutEnabled = false;
+                
+                foreach (SearchResultEntry entry in policySearchResponse.Entries)
+                {
+                    // Intentar extraer políticas de contraseña
+                    if (entry.Attributes.Contains("pwdMinLength") && entry.Attributes["pwdMinLength"].Count > 0)
+                    {
+                        if (int.TryParse(entry.Attributes["pwdMinLength"][0]?.ToString(), out var minLen))
+                        {
+                            minLength = minLen;
+                        }
+                    }
+                    
+                    if (entry.Attributes.Contains("pwdInHistory") && entry.Attributes["pwdInHistory"].Count > 0)
+                    {
+                        if (int.TryParse(entry.Attributes["pwdInHistory"][0]?.ToString(), out var hist))
+                        {
+                            historyCount = hist;
+                        }
+                    }
+                    
+                    if (entry.Attributes.Contains("pwdMaxAge") && entry.Attributes["pwdMaxAge"].Count > 0)
+                    {
+                        if (int.TryParse(entry.Attributes["pwdMaxAge"][0]?.ToString(), out var maxAge))
+                        {
+                            // Convertir segundos a días
+                            maxAgeDays = maxAge / 86400;
+                        }
+                    }
+                    
+                    if (entry.Attributes.Contains("pwdExpireWarning") && entry.Attributes["pwdExpireWarning"].Count > 0)
+                    {
+                        if (int.TryParse(entry.Attributes["pwdExpireWarning"][0]?.ToString(), out var warn))
+                        {
+                            warningDays = warn / 86400;
+                        }
+                    }
+                    
+                    if (entry.Attributes.Contains("pwdLockout") && entry.Attributes["pwdLockout"].Count > 0)
+                    {
+                        lockoutEnabled = entry.Attributes["pwdLockout"][0]?.ToString()?.ToLower() == "true";
+                    }
+                }
+
+                // Aplicar políticas extraídas a la configuración
+                if (historyCount.HasValue && historyCount.Value > 0)
+                {
+                    config.SyncPasswordPolicies = true;
+                    // Se podría almacenar historyCount en un campo adicional si fuera necesario
+                }
+                
+                if (maxAgeDays.HasValue && maxAgeDays.Value > 0)
+                {
+                    config.ForcePasswordResetDays = maxAgeDays.Value;
+                }
+            }
+            catch (LdapException)
+            {
+                // Si no hay políticas de contraseña, continuar sin ellas
+            }
+
+            // Extraer información de usuarios para detectar atributos de políticas
+            var userSearchRequest = new SearchRequest(
+                server.BaseDn,
+                server.UserSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))",
+                SearchScope.Subtree,
+                "pwdChangedTime", "pwdAccountLockedTime", "pwdFailureTime", 
+                "loginGraceLimit", "loginGraceRemaining"
+            );
+            
+            try
+            {
+                var userSearchResponse = await Task.Run(() => (SearchResponse)ldap.SendRequest(userSearchRequest));
+                
+                bool hasPasswordChangeTime = false;
+                bool hasLockoutInfo = false;
+                
+                foreach (SearchResultEntry entry in userSearchResponse.Entries)
+                {
+                    if (!hasPasswordChangeTime && entry.Attributes.Contains("pwdChangedTime"))
+                    {
+                        hasPasswordChangeTime = true;
+                    }
+                    
+                    if (!hasLockoutInfo && entry.Attributes.Contains("pwdAccountLockedTime"))
+                    {
+                        hasLockoutInfo = true;
+                    }
+                    
+                    if (hasPasswordChangeTime && hasLockoutInfo)
+                        break;
+                }
+                
+                if (hasPasswordChangeTime || hasLockoutInfo)
+                {
+                    config.SyncPasswordPolicies = true;
+                }
+            }
+            catch (LdapException)
+            {
+                // Continuar sin información de políticas de usuario
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error al extraer políticas y OUs del servidor LDAP: {ex.Message}", ex);
+        }
+
+        return (config, ous);
+    }
 }
