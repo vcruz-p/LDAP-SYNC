@@ -129,23 +129,23 @@ public class LdapService : ILdapService
 
     private static LdapUser MapLdapEntryToUser(LdapEntry entry, SyncConfiguration config)
     {
-        var attr = entry.Attribute;
+        var attrSet = entry.AttributeSet;
         
         return new LdapUser
         {
-            Uid = GetAttributeValue(attr, "uid"),
-            CommonName = GetAttributeValue(attr, "cn"),
-            DisplayName = GetAttributeValue(attr, "displayName") ?? GetAttributeValue(attr, "cn")!,
-            Email = GetAttributeValue(attr, "mail"),
-            FirstName = GetAttributeValue(attr, "givenName") ?? string.Empty,
-            LastName = GetAttributeValue(attr, "sn") ?? string.Empty,
-            TelephoneNumber = GetAttributeValue(attr, "telephoneNumber"),
-            Ou = GetAttributeValue(attr, "ou"),
-            Organization = GetAttributeValue(attr, "o"),
-            GidNumber = GetIntAttributeValue(attr, "gidNumber"),
-            UidNumber = GetIntAttributeValue(attr, "uidNumber"),
-            LoginShell = GetAttributeValue(attr, "loginShell"),
-            HomeDirectory = GetAttributeValue(attr, "homeDirectory"),
+            Uid = GetAttributeValue(attrSet, "uid"),
+            CommonName = GetAttributeValue(attrSet, "cn"),
+            DisplayName = GetAttributeValue(attrSet, "displayName") ?? GetAttributeValue(attrSet, "cn")!,
+            Email = GetAttributeValue(attrSet, "mail"),
+            FirstName = GetAttributeValue(attrSet, "givenName") ?? string.Empty,
+            LastName = GetAttributeValue(attrSet, "sn") ?? string.Empty,
+            TelephoneNumber = GetAttributeValue(attrSet, "telephoneNumber"),
+            Ou = GetAttributeValue(attrSet, "ou"),
+            Organization = GetAttributeValue(attrSet, "o"),
+            GidNumber = GetIntAttributeValue(attrSet, "gidNumber"),
+            UidNumber = GetIntAttributeValue(attrSet, "uidNumber"),
+            LoginShell = GetAttributeValue(attrSet, "loginShell"),
+            HomeDirectory = GetAttributeValue(attrSet, "homeDirectory"),
             DistinguishedName = entry.Dn,
             IsActive = true,
             SyncedAt = DateTime.UtcNow
@@ -154,15 +154,15 @@ public class LdapService : ILdapService
 
     private static LdapGroup MapLdapEntryToGroup(LdapEntry entry, SyncConfiguration config)
     {
-        var attr = entry.Attribute;
+        var attrSet = entry.AttributeSet;
         
         return new LdapGroup
         {
-            CommonName = GetAttributeValue(attr, "cn"),
-            Description = GetAttributeValue(attr, "description"),
-            GidNumber = GetIntAttributeValue(attr, "gidNumber"),
+            CommonName = GetAttributeValue(attrSet, "cn"),
+            Description = GetAttributeValue(attrSet, "description"),
+            GidNumber = GetIntAttributeValue(attrSet, "gidNumber"),
             DistinguishedName = entry.Dn,
-            ObjectClass = GetAttributeValue(attr, "objectClass"),
+            ObjectClass = GetAttributeValue(attrSet, "objectClass"),
             IsActive = true,
             SyncedAt = DateTime.UtcNow
         };
