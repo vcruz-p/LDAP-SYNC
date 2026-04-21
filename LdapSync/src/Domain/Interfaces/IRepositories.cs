@@ -77,6 +77,7 @@ public interface ILdapService
     Task<IEnumerable<LdapUser>> SyncUsersAsync(LdapServer server, SyncConfiguration config);
     Task<IEnumerable<LdapGroup>> SyncGroupsAsync(LdapServer server, SyncConfiguration config);
     Task<IEnumerable<UserGroupMembership>> SyncMembershipsAsync(LdapServer server, SyncConfiguration config);
+    Task<(SyncConfiguration Config, IEnumerable<string> Ous)> ExtractPoliciesAndOusFromLdapAsync(LdapServer server);
 }
 
 public interface ISyncService

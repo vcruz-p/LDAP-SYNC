@@ -187,7 +187,7 @@ public class SyncController : ControllerBase
     }
 
     /// <summary>
-    /// Crea una configuración de sincronización poblada con las políticas del servidor
+    /// Crea una configuración de sincronización poblada con las políticas del servidor extraídas dinámicamente
     /// </summary>
     [HttpPost("configurations/auto-from-server/{serverId}")]
     public async Task<ActionResult<SyncConfigurationDto>> CreateConfigurationFromServerPolicies(string serverId)
@@ -205,28 +205,10 @@ public class SyncController : ControllerBase
                 return BadRequest(new { message = "Ya existe una configuración para este servidor" });
             }
 
-            // Crear configuración con políticas basadas en el servidor
-            var config = new SyncConfiguration
-            {
-                ServerId = serverId,
-                Enabled = false, // Se crea deshabilitada por defecto
-                CronSchedule = "0 2 * * *", // Daily at 2 AM
-                SyncMode = "full",
-                SyncUsers = true,
-                SyncGroups = true,
-                SyncMemberships = true,
-                SyncPasswords = false,
-                SyncPasswordPolicies = true,
-                ForcePasswordResetDays = null,
-                DeactivateOrphanUsers = true,
-                DeleteOrphanGroups = false,
-                PageSize = 500,
-                MaxEntries = 0,
-                SearchBase = server.BaseDn,
-                ExcludedAttributes = null
-            };
+            // Extraer políticas y OUs directamente del servidor LDAP
+            var (extractedConfig, ous) = await _ldapService.ExtractPoliciesAndOusFromLdapAsync(server);
 
-            var createdConfig = await _configRepository.AddAsync(config);
+            var createdConfig = await _configRepository.AddAsync(extractedConfig);
 
             return Ok(new SyncConfigurationDto
             {

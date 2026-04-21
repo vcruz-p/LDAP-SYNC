@@ -116,6 +116,38 @@ GET /api/sync/logs?count=10
 **Parámetros:**
 - `count` (int): Número de registros a devolver (default: 10)
 
+#### Ejecutar Sincronización para Todos los Servidores Activos
+```http
+POST /api/sync/execute-all-active?isDryRun=false
+```
+
+**Parámetros:**
+- `isDryRun` (boolean): Si es true, no guarda los cambios en BD
+
+**Respuesta Exitosa (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Sincronización completada: 3 exitosas, 0 fallidas",
+  "totalServers": 3,
+  "successfulSyncs": 3,
+  "failedSyncs": 0,
+  "results": [
+    {
+      "configurationId": "guid-config-1",
+      "serverId": "guid-server-1",
+      "serverName": "LDAP Principal",
+      "success": true,
+      "message": "Sincronización completada",
+      "usersProcessed": 150,
+      "groupsProcessed": 25,
+      "membershipsProcessed": 300,
+      "errorsCount": 0
+    }
+  ]
+}
+```
+
 ### 2. Configuraciones de Sincronización
 
 #### Obtener Todas las Configuraciones
@@ -127,6 +159,61 @@ GET /api/sync/configurations
 ```http
 GET /api/sync/configurations/{id}
 ```
+
+#### Crear Configuración Automática desde Políticas del Servidor LDAP
+```http
+POST /api/sync/configurations/auto-from-server/{serverId}
+```
+
+Este endpoint se conecta al servidor LDAP especificado y extrae automáticamente:
+- **Unidades Organizativas (OUs)**: Detecta todas las OUs disponibles
+- **Políticas de Seguridad**: Extrae políticas de contraseña (pwdPolicy)
+  - Longitud mínima de contraseña
+  - Historial de contraseñas
+  - Edad máxima de contraseña (días para forzar reset)
+  - Advertencia de expiración
+  - Bloqueo de cuenta por intentos fallidos
+
+**Parámetros:**
+- `serverId` (string): ID del servidor LDAP configurado
+
+**Respuesta Exitosa (200 OK):**
+```json
+{
+  "id": "guid-config-nueva",
+  "serverId": "guid-server-1",
+  "enabled": false,
+  "cronSchedule": "0 2 * * *",
+  "syncMode": "full",
+  "syncUsers": true,
+  "syncGroups": true,
+  "syncMemberships": true,
+  "syncPasswords": false,
+  "syncPasswordPolicies": true,
+  "forcePasswordResetDays": 90,
+  "deactivateOrphanUsers": true,
+  "deleteOrphanGroups": false,
+  "pageSize": 500,
+  "maxEntries": 0,
+  "searchBase": "dc=example,dc=com",
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z"
+}
+```
+
+**Flujo de Extracción de Políticas:**
+1. Se conecta al servidor LDAP con las credenciales configuradas
+2. Busca todas las Unidades Organizativas (objectClass=organizationalUnit)
+3. Busca entradas de políticas de contraseña (objectClass=pwdPolicy)
+4. Extrae atributos de seguridad:
+   - `pwdMinLength`: Longitud mínima de contraseña
+   - `pwdInHistory`: Cantidad de contraseñas en historial
+   - `pwdMaxAge`: Edad máxima en segundos (convertida a días)
+   - `pwdExpireWarning`: Días de advertencia antes de expirar
+   - `pwdLockout`: Si está habilitado el bloqueo de cuenta
+5. Busca en usuarios atributos de políticas (pwdChangedTime, pwdAccountLockedTime)
+6. Crea una configuración poblada con los valores extraídos
+7. Guarda la configuración en la base de datos (deshabilitada por defecto)
 
 ## Entidades del Dominio
 
