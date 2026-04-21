@@ -60,20 +60,67 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
-        // Check if there are pending migrations
-        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-        var hasPendingMigrations = pendingMigrations.Any();
-        
-        if (hasPendingMigrations)
+        // First ensure the database exists
+        var dbCreated = await dbContext.Database.EnsureCreatedAsync();
+        if (dbCreated)
         {
-            Console.WriteLine($"Se encontraron {pendingMigrations.Count()} migraciones pendientes: {string.Join(", ", pendingMigrations)}");
-            // Apply any pending migrations (this will create tables if they don't exist)
-            await dbContext.Database.MigrateAsync();
-            Console.WriteLine("Migraciones aplicadas exitosamente.");
+            Console.WriteLine("Base de datos y tablas creadas exitosamente.");
         }
         else
         {
-            Console.WriteLine("No hay migraciones pendientes. La base de datos está actualizada.");
+            Console.WriteLine("La base de datos ya existe.");
+            
+            // Check if there are pending migrations
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+            var hasPendingMigrations = pendingMigrations.Any();
+            
+            if (hasPendingMigrations)
+            {
+                Console.WriteLine($"Se encontraron {pendingMigrations.Count()} migraciones pendientes: {string.Join(", ", pendingMigrations)}");
+                
+                // Check if tables already exist by querying INFORMATION_SCHEMA
+                var connection = dbContext.Database.GetDbConnection();
+                await connection.OpenAsync();
+                
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT COUNT(*) 
+                    FROM INFORMATION_SCHEMA.TABLES 
+                    WHERE TABLE_SCHEMA = @schema 
+                    AND TABLE_NAME IN ('LdapServers', 'LdapUsers', 'LdapGroups', 'SyncConfigurations', 'SyncLogs', 'UserGroupMemberships')";
+                
+                var param = cmd.CreateParameter();
+                param.ParameterName = "@schema";
+                param.Value = dbContext.Database.GetDbConnection().Database;
+                cmd.Parameters.Add(param);
+                
+                var existingTablesCount = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                
+                if (existingTablesCount > 0)
+                {
+                    Console.WriteLine($"Se detectaron {existingTablesCount} tablas existentes. Marcando migraciones como aplicadas sin ejecutarlas...");
+                    
+                    // If tables exist but migrations are not tracked, insert all pending migration records
+                    foreach (var migration in pendingMigrations)
+                    {
+                        await dbContext.Database.ExecuteSqlRawAsync(
+                            $"INSERT IGNORE INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('{migration}', '9.0.0')"
+                        );
+                    }
+                    
+                    Console.WriteLine("Migraciones marcadas como aplicadas.");
+                }
+                else
+                {
+                    // No tables exist, safe to apply migrations
+                    await dbContext.Database.MigrateAsync();
+                    Console.WriteLine("Migraciones aplicadas exitosamente.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No hay migraciones pendientes. La base de datos está actualizada.");
+            }
         }
     }
     catch (Exception ex)
