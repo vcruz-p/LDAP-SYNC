@@ -27,7 +27,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
+                ldap.SessionOptions.ServerCertificateValidationCallback += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -61,7 +61,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
+                ldap.SessionOptions.ServerCertificateValidationCallback += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -116,7 +116,7 @@ public class LdapService : ILdapService
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
+                ldap.SessionOptions.ServerCertificateValidationCallback += (sender, cert) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
