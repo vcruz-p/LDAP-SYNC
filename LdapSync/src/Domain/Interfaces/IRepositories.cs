@@ -73,6 +73,7 @@ public interface IUserGroupMembershipRepository
 public interface ILdapService
 {
     Task<bool> TestConnectionAsync(LdapServer server);
+    Task<(bool Success, string? ErrorMessage)> TestConnectionWithDetailsAsync(LdapServer server);
     Task<IEnumerable<LdapUser>> SyncUsersAsync(LdapServer server, SyncConfiguration config);
     Task<IEnumerable<LdapGroup>> SyncGroupsAsync(LdapServer server, SyncConfiguration config);
     Task<IEnumerable<UserGroupMembership>> SyncMembershipsAsync(LdapServer server, SyncConfiguration config);

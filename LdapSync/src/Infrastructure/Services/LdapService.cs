@@ -41,6 +41,57 @@ public class LdapService : ILdapService
         }
     }
 
+    public async Task<(bool Success, string? ErrorMessage)> TestConnectionWithDetailsAsync(LdapServer server)
+    {
+        try
+        {
+            var identifier = new LdapDirectoryIdentifier(server.Host, server.Port);
+            var credential = new NetworkCredential(server.BindDn, server.BindPassword);
+            
+            using var ldap = new LdapConnection(identifier, credential);
+            ldap.SessionOptions.ProtocolVersion = 3;
+            ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
+            
+            if (server.UseTls)
+            {
+                try
+                {
+                    ldap.SessionOptions.StartTransportLayerSecurity(null);
+                }
+                catch (Exception ex)
+                {
+                    return (false, $"Error al iniciar TLS: {ex.Message}");
+                }
+            }
+            
+            if (!server.ValidateCertificate)
+            {
+                ldap.SessionOptions.VerifyCert += (sender, cert) => true;
+            }
+            
+            ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
+            
+            await Task.Run(() => ldap.Bind());
+            return (true, null);
+        }
+        catch (LdapException ex)
+        {
+            return (false, $"Error LDAP: {ex.Message} (Código: {ex.ErrorCode})");
+        }
+        catch (TimeoutException ex)
+        {
+            return (false, $"Tiempo de espera agotado: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return (false, $"Acceso no autorizado: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error de conexión: {ex.Message}");
+        }
+    }
+
     public async Task<IEnumerable<LdapUser>> SyncUsersAsync(LdapServer server, SyncConfiguration config)
     {
         var users = new List<LdapUser>();

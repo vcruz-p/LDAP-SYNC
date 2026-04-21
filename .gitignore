@@ -1,1 +1,34 @@
-Nothing to output - the modified file is a source code file (.cs) and no build artifacts, dependencies, or temporary files are present in the changes.
+```
+# Build artifacts
+bin/
+obj/
+out/
+dist/
+build/
+
+# Dependencies
+packages/
+node_modules/
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+*.userprefs
+*.user
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Test coverage
+coverage/
+```
