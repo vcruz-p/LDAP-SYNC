@@ -295,15 +295,15 @@ public class LdapServersController : ControllerBase
 
         try
         {
-            var isConnected = await _ldapService.TestConnectionAsync(server);
+            var result = await _ldapService.TestConnectionWithDetailsAsync(server);
             
             server.LastConnectionTest = DateTime.UtcNow;
             await _serverRepository.UpdateAsync(server);
 
             return Ok(new 
             { 
-                success = isConnected, 
-                message = isConnected ? "Conexión exitosa" : "No se pudo establecer la conexión",
+                success = result.Success, 
+                message = result.Success ? "Conexión exitosa" : result.ErrorMessage,
                 lastTest = server.LastConnectionTest
             });
         }
@@ -315,5 +315,64 @@ public class LdapServersController : ControllerBase
                 message = $"Error al probar la conexión: {ex.Message}"
             });
         }
+    }
+
+    /// <summary>
+    /// Prueba la conexión con todos los servidores LDAP activos y reporta errores detallados
+    /// </summary>
+    [HttpPost("test-all-connections")]
+    public async Task<ActionResult> TestAllActiveConnections()
+    {
+        var servers = await _serverRepository.GetActiveServersAsync();
+        var results = new List<object>();
+
+        foreach (var server in servers)
+        {
+            try
+            {
+                var result = await _ldapService.TestConnectionWithDetailsAsync(server);
+                
+                server.LastConnectionTest = DateTime.UtcNow;
+                await _serverRepository.UpdateAsync(server);
+
+                results.Add(new 
+                { 
+                    serverId = server.Id,
+                    serverName = server.Name,
+                    host = server.Host,
+                    port = server.Port,
+                    success = result.Success, 
+                    message = result.Success ? "Conexión exitosa" : result.ErrorMessage,
+                    lastTest = server.LastConnectionTest
+                });
+            }
+            catch (Exception ex)
+            {
+                results.Add(new 
+                { 
+                    serverId = server.Id,
+                    serverName = server.Name,
+                    host = server.Host,
+                    port = server.Port,
+                    success = false, 
+                    message = $"Error excepcional: {ex.Message}"
+                });
+            }
+        }
+
+        var totalServers = results.Count;
+        var successfulConnections = results.Count(r => Convert.ToBoolean(((dynamic)r).success));
+        var failedConnections = totalServers - successfulConnections;
+
+        return Ok(new 
+        { 
+            summary = new
+            {
+                totalServers = totalServers,
+                successfulConnections = successfulConnections,
+                failedConnections = failedConnections
+            },
+            details = results
+        });
     }
 }
