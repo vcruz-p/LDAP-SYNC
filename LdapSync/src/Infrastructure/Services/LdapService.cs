@@ -104,7 +104,7 @@ public class LdapService : ILdapService
             await Task.Run(() => ldap.Bind());
 
             var searchBase = config.SearchBase ?? server.BaseDn;
-            var searchFilter = server.UserSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))";
+            var searchFilter = server.UserSearchFilter ?? "(objectClass=person)";
             
             var searchRequest = new SearchRequest(
                 searchBase,
@@ -154,7 +154,7 @@ public class LdapService : ILdapService
             await Task.Run(() => ldap.Bind());
 
             var searchBase = config.SearchBase ?? server.BaseDn;
-            var searchFilter = server.GroupSearchFilter ?? "(|(objectClass=groupOfNames)(objectClass=posixGroup)(objectClass=groupOfUniqueNames))";
+            var searchFilter = server.GroupSearchFilter ?? "(objectClass=groupOfNames)";
             
             var searchRequest = new SearchRequest(
                 searchBase,
@@ -416,7 +416,7 @@ public class LdapService : ILdapService
             // Extraer información de usuarios para detectar atributos de políticas
             var userSearchRequest = new SearchRequest(
                 server.BaseDn,
-                server.UserSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))",
+                "(objectClass=person)",
                 SearchScope.Subtree,
                 "pwdChangedTime", "pwdAccountLockedTime", "pwdFailureTime", 
                 "loginGraceLimit", "loginGraceRemaining"
