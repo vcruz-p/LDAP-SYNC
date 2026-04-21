@@ -5,36 +5,30 @@ obj/
 *.dll
 *.exe
 *.pdb
-*.config
 *.nupkg
-packages/
+*.snupkg
 
 # Dependencies
 packages/
 node_modules/
-vendor/
 
 # Logs
 *.log
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Environment specific files
+# Environment
 .env
 .env.local
 *.env.*
 
-# IDE files
+# Editors
 .vscode/
 .idea/
-*.userprefs
-*.user
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
 
-# Test results
-TestResults/
+# OS generated files
+.DS_Store
+Thumbs.db
 ```
