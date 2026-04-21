@@ -58,27 +58,41 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     
-    // Create database if it doesn't exist
-    var created = await dbContext.Database.EnsureCreatedAsync();
-    
-    if (created)
-    {
-        Console.WriteLine("Base de datos 'ldapsync' creada exitosamente.");
-    }
-    else
-    {
-        Console.WriteLine("La base de datos ya existe.");
-    }
-
-    // Apply any pending migrations
+    // Check if there are pending migrations
     try
     {
+        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+        var hasPendingMigrations = pendingMigrations.Any();
+        
+        if (hasPendingMigrations)
+        {
+            Console.WriteLine($"Se encontraron {pendingMigrations.Count()} migraciones pendientes: {string.Join(", ", pendingMigrations)}");
+        }
+        else
+        {
+            Console.WriteLine("No hay migraciones pendientes.");
+        }
+        
+        // Create database if it doesn't exist
+        var created = await dbContext.Database.EnsureCreatedAsync();
+        
+        if (created)
+        {
+            Console.WriteLine("Base de datos 'ldapsync' creada exitosamente.");
+        }
+        else
+        {
+            Console.WriteLine("La base de datos ya existe.");
+        }
+
+        // Apply any pending migrations
         await dbContext.Database.MigrateAsync();
         Console.WriteLine("Migraciones aplicadas exitosamente.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error al aplicar migraciones: {ex.Message}");
+        Console.WriteLine($"Error al verificar/aplicar migraciones: {ex.Message}");
+        throw;
     }
 }
 
@@ -98,7 +112,8 @@ app.MapControllers();
 
 Console.WriteLine("===========================================");
 Console.WriteLine("LDAP Sync API iniciada correctamente");
-Console.WriteLine("Acceda a Swagger en: http://localhost:5000");
+Console.WriteLine("Escuchando en: http://0.0.0.0:1054");
+Console.WriteLine("Acceda a Swagger en: http://localhost:1054");
 Console.WriteLine("===========================================");
 
-app.Run();
+app.Run("http://0.0.0.0:1054");
