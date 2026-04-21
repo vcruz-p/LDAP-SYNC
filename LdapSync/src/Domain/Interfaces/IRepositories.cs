@@ -1,3 +1,5 @@
+using LdapSync.Domain.Entities;
+
 namespace LdapSync.Domain.Interfaces;
 
 public interface ILdapServerRepository
