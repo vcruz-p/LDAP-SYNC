@@ -118,35 +118,48 @@ public class LdapServersController : ControllerBase
     /// Crea un nuevo servidor LDAP
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<LdapServerDto>> CreateServer([FromBody] CreateLdapServerDto dto)
+    public async Task<ActionResult<LdapServerDto>> CreateServer(
+        [FromForm] string name,
+        [FromForm] string host,
+        [FromForm] int port = 389,
+        [FromForm] string baseDn,
+        [FromForm] string bindDn,
+        [FromForm] string? bindPassword = null,
+        [FromForm] bool useTls = false,
+        [FromForm] bool validateCertificate = true,
+        [FromForm] int timeoutSeconds = 30,
+        [FromForm] string? userSearchFilter = null,
+        [FromForm] string? groupSearchFilter = null,
+        [FromForm] string? serverType = null,
+        [FromForm] string? description = null)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
+        if (string.IsNullOrWhiteSpace(name))
             return BadRequest(new { message = "El nombre del servidor es requerido" });
 
-        if (string.IsNullOrWhiteSpace(dto.Host))
+        if (string.IsNullOrWhiteSpace(host))
             return BadRequest(new { message = "El host del servidor es requerido" });
 
-        if (string.IsNullOrWhiteSpace(dto.BaseDn))
+        if (string.IsNullOrWhiteSpace(baseDn))
             return BadRequest(new { message = "El DN base es requerido" });
 
-        if (string.IsNullOrWhiteSpace(dto.BindDn))
+        if (string.IsNullOrWhiteSpace(bindDn))
             return BadRequest(new { message = "El DN de enlace es requerido" });
 
         var server = new LdapServer
         {
-            Name = dto.Name,
-            Host = dto.Host,
-            Port = dto.Port,
-            BaseDn = dto.BaseDn,
-            BindDn = dto.BindDn,
-            BindPassword = dto.BindPassword ?? string.Empty,
-            UseTls = dto.UseTls,
-            ValidateCertificate = dto.ValidateCertificate,
-            TimeoutSeconds = dto.TimeoutSeconds,
-            UserSearchFilter = dto.UserSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))",
-            GroupSearchFilter = dto.GroupSearchFilter ?? "(|(objectClass=groupOfNames)(objectClass=posixGroup)(objectClass=groupOfUniqueNames))",
-            ServerType = dto.ServerType,
-            Description = dto.Description,
+            Name = name,
+            Host = host,
+            Port = port,
+            BaseDn = baseDn,
+            BindDn = bindDn,
+            BindPassword = bindPassword ?? string.Empty,
+            UseTls = useTls,
+            ValidateCertificate = validateCertificate,
+            TimeoutSeconds = timeoutSeconds,
+            UserSearchFilter = userSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))",
+            GroupSearchFilter = groupSearchFilter ?? "(|(objectClass=groupOfNames)(objectClass=posixGroup)(objectClass=groupOfUniqueNames))",
+            ServerType = serverType,
+            Description = description,
             IsActive = true
         };
 
