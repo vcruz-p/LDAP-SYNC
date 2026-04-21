@@ -7,7 +7,9 @@ obj/
 *.pdb
 *.so
 *.dylib
-*.nupkg
+*.jar
+*.war
+*.class
 
 # Dependencies
 packages/
@@ -21,11 +23,12 @@ logs/
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
 # OS generated files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE files
 .vscode/
@@ -42,4 +45,5 @@ htmlcov/
 # Temporary files
 *.tmp
 *.temp
+*~
 ```

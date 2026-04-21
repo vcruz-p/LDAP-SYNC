@@ -12,8 +12,8 @@ public class LdapServer
     public bool UseTls { get; set; } = false;
     public bool ValidateCertificate { get; set; } = true;
     public int TimeoutSeconds { get; set; } = 30;
-    public string UserSearchFilter { get; set; } = "(objectClass=person)";
-    public string GroupSearchFilter { get; set; } = "(objectClass=groupOfNames)";
+    public string UserSearchFilter { get; set; } = "";
+    public string GroupSearchFilter { get; set; } = "";
     public bool IsActive { get; set; } = true;
     public string? ServerType { get; set; }
     public string? Description { get; set; }
