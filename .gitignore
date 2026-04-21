@@ -1,1 +1,45 @@
-Nothing should be ignored based on the provided file changes. The only modified file is a source code file (.cs), which should not be ignored.
+```
+# Build artifacts
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.so
+*.dylib
+*.nupkg
+
+# Dependencies
+packages/
+node_modules/
+vendor/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test and coverage
+coverage/
+htmlcov/
+*.coverage
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+```

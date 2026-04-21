@@ -156,8 +156,8 @@ public class LdapServersController : ControllerBase
             UseTls = useTls,
             ValidateCertificate = validateCertificate,
             TimeoutSeconds = timeoutSeconds,
-            UserSearchFilter = userSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))",
-            GroupSearchFilter = groupSearchFilter ?? "(|(objectClass=groupOfNames)(objectClass=posixGroup)(objectClass=groupOfUniqueNames))",
+            UserSearchFilter = userSearchFilter ?? "(objectClass=person)",
+            GroupSearchFilter = groupSearchFilter ?? "(objectClass=groupOfNames)",
             ServerType = serverType,
             Description = description,
             IsActive = true
