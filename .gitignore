@@ -1,71 +1,49 @@
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
+```
+# Build artifacts
 *.obj
 *.exe
 *.dll
 *.so
-*.class
-*.out
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.dSYM/
+*.dylib
 
 # Dependencies
-node_modules/
-venv/
-.venv/
-.env
-.env.local
-.env.*
-
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Editors
-.vscode/
-.idea/
-*.swo
-
-# Build directories
+packages/
+bin/
+obj/
+out/
 dist/
 build/
-target/
-.gradle/
+node_modules/
+vendor/
 
-# Python specific
-*.pyc
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-.coverage
-coverage/
-htmlcov/
+# IDE specific
+.vs/
+.vscode/
+.idea/
+*.userprefs
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
-# System files
+# OS generated
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Logs
+*.log
+
+# Configuration
+appsettings.Production.json
+*.bak
+*.backup
+```
