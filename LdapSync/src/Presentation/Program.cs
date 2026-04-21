@@ -58,36 +58,23 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     
-    // Check if there are pending migrations
     try
     {
+        // Check if there are pending migrations
         var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
         var hasPendingMigrations = pendingMigrations.Any();
         
         if (hasPendingMigrations)
         {
             Console.WriteLine($"Se encontraron {pendingMigrations.Count()} migraciones pendientes: {string.Join(", ", pendingMigrations)}");
+            // Apply any pending migrations (this will create tables if they don't exist)
+            await dbContext.Database.MigrateAsync();
+            Console.WriteLine("Migraciones aplicadas exitosamente.");
         }
         else
         {
-            Console.WriteLine("No hay migraciones pendientes.");
+            Console.WriteLine("No hay migraciones pendientes. La base de datos está actualizada.");
         }
-        
-        // Create database if it doesn't exist
-        var created = await dbContext.Database.EnsureCreatedAsync();
-        
-        if (created)
-        {
-            Console.WriteLine("Base de datos 'ldapsync' creada exitosamente.");
-        }
-        else
-        {
-            Console.WriteLine("La base de datos ya existe.");
-        }
-
-        // Apply any pending migrations
-        await dbContext.Database.MigrateAsync();
-        Console.WriteLine("Migraciones aplicadas exitosamente.");
     }
     catch (Exception ex)
     {
