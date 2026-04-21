@@ -21,12 +21,12 @@ public class LdapService : ILdapService
             
             if (server.UseTls)
             {
-                ldap.SessionOptions.StartTransportLayerSecurity();
+                ldap.SessionOptions.StartTransportLayerSecurity(null);
             }
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (_, _) => true;
+                ldap.SessionOptions.ServerCertificateValidationCallback += (_, _) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -55,12 +55,12 @@ public class LdapService : ILdapService
             
             if (server.UseTls)
             {
-                ldap.SessionOptions.StartTransportLayerSecurity();
+                ldap.SessionOptions.StartTransportLayerSecurity(null);
             }
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (_, _) => true;
+                ldap.SessionOptions.ServerCertificateValidationCallback += (_, _) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -110,12 +110,12 @@ public class LdapService : ILdapService
             
             if (server.UseTls)
             {
-                ldap.SessionOptions.StartTransportLayerSecurity();
+                ldap.SessionOptions.StartTransportLayerSecurity(null);
             }
             
             if (!server.ValidateCertificate)
             {
-                ldap.SessionOptions.VerifyCert += (_, _) => true;
+                ldap.SessionOptions.ServerCertificateValidationCallback += (_, _) => true;
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
@@ -224,7 +224,7 @@ public class LdapService : ILdapService
         }
         
         var objectClass = entry.Attributes.Contains("objectClass") 
-            ? string.Join(",", entry.Attributes["objectClass"].ToArray()) 
+            ? string.Join(",", entry.Attributes["objectClass"].GetValues(typeof(string))) 
             : string.Empty;
         
         return new LdapGroup
