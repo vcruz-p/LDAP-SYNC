@@ -5,22 +5,24 @@ obj/
 *.dll
 *.exe
 *.pdb
-*.nupkg
-*.snupkg
+*.so
+*.dylib
+*.class
 
 # Dependencies
 packages/
 node_modules/
+vendor/
 
 # Logs
 *.log
 
-# Environment
+# Environment specific
 .env
 .env.local
-*.env.*
+*.userprefs
 
-# Editors
+# IDE
 .vscode/
 .idea/
 *.suo
