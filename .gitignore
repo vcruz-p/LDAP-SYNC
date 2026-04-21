@@ -23,14 +23,18 @@ vendor/
 *.userprefs
 
 # IDE
+.vs/
 .vscode/
 .idea/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
+*.swp
+*.swo
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
+
+# Test coverage
+coverage/
+*.coverage
+htmlcov/
 ```
