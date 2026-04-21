@@ -103,8 +103,8 @@ using (var scope = app.Services.CreateScope())
                     // If tables exist but migrations are not tracked, insert all pending migration records
                     foreach (var migration in pendingMigrations)
                     {
-                        await dbContext.Database.ExecuteSqlRawAsync(
-                            $"INSERT IGNORE INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('{migration}', '9.0.0')"
+                        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                            $"INSERT IGNORE INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ({migration}, '9.0.0')"
                         );
                     }
                     
