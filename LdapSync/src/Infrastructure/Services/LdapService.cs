@@ -1,5 +1,6 @@
 using System.DirectoryServices.Protocols;
 using System.Net;
+using System.Linq;
 using LdapSync.Domain.Entities;
 using LdapSync.Domain.Interfaces;
 
@@ -20,7 +21,7 @@ public class LdapService : ILdapService
             
             if (server.UseTls)
             {
-                ldap.SessionOptions.StartTransportLayerSecurity = true;
+                ldap.SessionOptions.StartTransportLayerSecurity();
             }
             
             if (!server.ValidateCertificate)
@@ -54,7 +55,7 @@ public class LdapService : ILdapService
             
             if (server.UseTls)
             {
-                ldap.SessionOptions.StartTransportLayerSecurity = true;
+                ldap.SessionOptions.StartTransportLayerSecurity();
             }
             
             if (!server.ValidateCertificate)
@@ -109,7 +110,7 @@ public class LdapService : ILdapService
             
             if (server.UseTls)
             {
-                ldap.SessionOptions.StartTransportLayerSecurity = true;
+                ldap.SessionOptions.StartTransportLayerSecurity();
             }
             
             if (!server.ValidateCertificate)
