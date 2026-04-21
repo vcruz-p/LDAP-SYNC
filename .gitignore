@@ -1,40 +1,49 @@
 ```
 # Build artifacts
-bin/
-obj/
-*.dll
+*.obj
 *.exe
-*.pdb
+*.dll
 *.so
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.dSYM/
 *.dylib
-*.class
 
 # Dependencies
 packages/
+bin/
+obj/
+out/
+dist/
+build/
 node_modules/
 vendor/
+
+# IDE specific
+.vs/
+.vscode/
+.idea/
+*.userprefs
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
 
 # Logs
 *.log
 
-# Environment specific
-.env
-.env.local
-*.userprefs
-
-# IDE
-.vs/
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Test coverage
-coverage/
-*.coverage
-htmlcov/
+# Configuration
+appsettings.Production.json
+*.bak
+*.backup
 ```

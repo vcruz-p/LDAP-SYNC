@@ -1,6 +1,7 @@
+using System.DirectoryServices.Protocols;
+using System.Net;
 using LdapSync.Domain.Entities;
 using LdapSync.Domain.Interfaces;
-using Novell.Directory.Ldap;
 
 namespace LdapSync.Infrastructure.Services;
 
@@ -10,16 +11,27 @@ public class LdapService : ILdapService
     {
         try
         {
-            using var ldap = new LdapConnection();
-            ldap.Connect(server.Host, server.Port);
+            var identifier = new LdapDirectoryIdentifier(server.Host, server.Port);
+            var credential = new NetworkCredential(server.BindDn, server.BindPassword);
+            
+            using var ldap = new LdapConnection(identifier, credential);
+            ldap.SessionOptions.ProtocolVersion = 3;
+            ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
             
             if (server.UseTls)
             {
-                ldap.StartTls();
+                ldap.SessionOptions.StartTransportLayerSecurity = true;
             }
-
-            ldap.Bind(server.BindDn, server.BindPassword);
-            return ldap.Connected;
+            
+            if (!server.ValidateCertificate)
+            {
+                ldap.SessionOptions.VerifyCert += (_, _) => true;
+            }
+            
+            ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
+            
+            await Task.Run(() => ldap.Bind());
+            return true;
         }
         catch
         {
@@ -33,35 +45,45 @@ public class LdapService : ILdapService
         
         try
         {
-            using var ldap = new LdapConnection();
-            ldap.Connect(server.Host, server.Port);
+            var identifier = new LdapDirectoryIdentifier(server.Host, server.Port);
+            var credential = new NetworkCredential(server.BindDn, server.BindPassword);
+            
+            using var ldap = new LdapConnection(identifier, credential);
+            ldap.SessionOptions.ProtocolVersion = 3;
+            ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
             
             if (server.UseTls)
             {
-                ldap.StartTls();
+                ldap.SessionOptions.StartTransportLayerSecurity = true;
             }
-
-            ldap.Bind(server.BindDn, server.BindPassword);
+            
+            if (!server.ValidateCertificate)
+            {
+                ldap.SessionOptions.VerifyCert += (_, _) => true;
+            }
+            
+            ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
+            
+            await Task.Run(() => ldap.Bind());
 
             var searchBase = config.SearchBase ?? server.BaseDn;
-            var searchFilter = server.UserSearchFilter;
+            var searchFilter = server.UserSearchFilter ?? "(&(objectClass=inetOrgPerson)(uid=*))";
             
-            var searchConstraints = new LdapSearchConstraints
-            {
-                MaxResults = config.MaxEntries > 0 ? config.MaxEntries : 10000,
-                BatchSize = config.PageSize
-            };
-
-            var results = ldap.Search(searchBase, LdapConnection.ScopeSub, searchFilter, null, false, searchConstraints);
+            var searchRequest = new SearchRequest(
+                searchBase,
+                searchFilter,
+                SearchScope.Subtree,
+                null
+            );
             
-            while (results.HasMore())
+            searchRequest.SizeLimit = config.MaxEntries > 0 ? config.MaxEntries : 10000;
+            
+            var searchResponse = await Task.Run(() => (SearchResponse)ldap.SendRequest(searchRequest));
+            
+            foreach (SearchResultEntry entry in searchResponse.Entries)
             {
-                var entry = results.Next();
-                if (entry != null)
-                {
-                    var user = MapLdapEntryToUser(entry, config);
-                    users.Add(user);
-                }
+                var user = MapLdapEntryToUser(entry, config);
+                users.Add(user);
             }
         }
         catch (Exception ex)
@@ -78,35 +100,45 @@ public class LdapService : ILdapService
         
         try
         {
-            using var ldap = new LdapConnection();
-            ldap.Connect(server.Host, server.Port);
+            var identifier = new LdapDirectoryIdentifier(server.Host, server.Port);
+            var credential = new NetworkCredential(server.BindDn, server.BindPassword);
+            
+            using var ldap = new LdapConnection(identifier, credential);
+            ldap.SessionOptions.ProtocolVersion = 3;
+            ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
             
             if (server.UseTls)
             {
-                ldap.StartTls();
+                ldap.SessionOptions.StartTransportLayerSecurity = true;
             }
-
-            ldap.Bind(server.BindDn, server.BindPassword);
+            
+            if (!server.ValidateCertificate)
+            {
+                ldap.SessionOptions.VerifyCert += (_, _) => true;
+            }
+            
+            ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
+            
+            await Task.Run(() => ldap.Bind());
 
             var searchBase = config.SearchBase ?? server.BaseDn;
-            var searchFilter = server.GroupSearchFilter;
+            var searchFilter = server.GroupSearchFilter ?? "(|(objectClass=groupOfNames)(objectClass=posixGroup)(objectClass=groupOfUniqueNames))";
             
-            var searchConstraints = new LdapSearchConstraints
-            {
-                MaxResults = config.MaxEntries > 0 ? config.MaxEntries : 10000,
-                BatchSize = config.PageSize
-            };
-
-            var results = ldap.Search(searchBase, LdapConnection.ScopeSub, searchFilter, null, false, searchConstraints);
+            var searchRequest = new SearchRequest(
+                searchBase,
+                searchFilter,
+                SearchScope.Subtree,
+                null
+            );
             
-            while (results.HasMore())
+            searchRequest.SizeLimit = config.MaxEntries > 0 ? config.MaxEntries : 10000;
+            
+            var searchResponse = await Task.Run(() => (SearchResponse)ldap.SendRequest(searchRequest));
+            
+            foreach (SearchResultEntry entry in searchResponse.Entries)
             {
-                var entry = results.Next();
-                if (entry != null)
-                {
-                    var group = MapLdapEntryToGroup(entry, config);
-                    groups.Add(group);
-                }
+                var group = MapLdapEntryToGroup(entry, config);
+                groups.Add(group);
             }
         }
         catch (Exception ex)
@@ -127,60 +159,82 @@ public class LdapService : ILdapService
         return await Task.FromResult(memberships.AsEnumerable());
     }
 
-    private static LdapUser MapLdapEntryToUser(LdapEntry entry, SyncConfiguration config)
+    private static LdapUser MapLdapEntryToUser(SearchResultEntry entry, SyncConfiguration config)
     {
-        var attr = entry.Attribute;
+        string GetAttributeValue(string name)
+        {
+            if (entry.Attributes.Contains(name) && entry.Attributes[name].Count > 0)
+            {
+                return entry.Attributes[name][0]?.ToString() ?? string.Empty;
+            }
+            return string.Empty;
+        }
+        
+        int? GetIntAttributeValue(string name)
+        {
+            var value = GetAttributeValue(name);
+            if (!string.IsNullOrEmpty(value) && int.TryParse(value, out var result))
+            {
+                return result;
+            }
+            return null;
+        }
         
         return new LdapUser
         {
-            Uid = GetAttributeValue(attr, "uid"),
-            CommonName = GetAttributeValue(attr, "cn"),
-            DisplayName = GetAttributeValue(attr, "displayName") ?? GetAttributeValue(attr, "cn")!,
-            Email = GetAttributeValue(attr, "mail"),
-            FirstName = GetAttributeValue(attr, "givenName") ?? string.Empty,
-            LastName = GetAttributeValue(attr, "sn") ?? string.Empty,
-            TelephoneNumber = GetAttributeValue(attr, "telephoneNumber"),
-            Ou = GetAttributeValue(attr, "ou"),
-            Organization = GetAttributeValue(attr, "o"),
-            GidNumber = GetIntAttributeValue(attr, "gidNumber"),
-            UidNumber = GetIntAttributeValue(attr, "uidNumber"),
-            LoginShell = GetAttributeValue(attr, "loginShell"),
-            HomeDirectory = GetAttributeValue(attr, "homeDirectory"),
-            DistinguishedName = entry.Dn,
+            Uid = GetAttributeValue("uid"),
+            CommonName = GetAttributeValue("cn"),
+            DisplayName = GetAttributeValue("displayName") != string.Empty ? GetAttributeValue("displayName") : GetAttributeValue("cn"),
+            Email = GetAttributeValue("mail"),
+            FirstName = GetAttributeValue("givenName"),
+            LastName = GetAttributeValue("sn"),
+            TelephoneNumber = GetAttributeValue("telephoneNumber"),
+            Ou = GetAttributeValue("ou"),
+            Organization = GetAttributeValue("o"),
+            GidNumber = GetIntAttributeValue("gidNumber"),
+            UidNumber = GetIntAttributeValue("uidNumber"),
+            LoginShell = GetAttributeValue("loginShell"),
+            HomeDirectory = GetAttributeValue("homeDirectory"),
+            DistinguishedName = entry.DistinguishedName,
             IsActive = true,
             SyncedAt = DateTime.UtcNow
         };
     }
 
-    private static LdapGroup MapLdapEntryToGroup(LdapEntry entry, SyncConfiguration config)
+    private static LdapGroup MapLdapEntryToGroup(SearchResultEntry entry, SyncConfiguration config)
     {
-        var attr = entry.Attribute;
+        string GetAttributeValue(string name)
+        {
+            if (entry.Attributes.Contains(name) && entry.Attributes[name].Count > 0)
+            {
+                return entry.Attributes[name][0]?.ToString() ?? string.Empty;
+            }
+            return string.Empty;
+        }
+        
+        int? GetIntAttributeValue(string name)
+        {
+            var value = GetAttributeValue(name);
+            if (!string.IsNullOrEmpty(value) && int.TryParse(value, out var result))
+            {
+                return result;
+            }
+            return null;
+        }
+        
+        var objectClass = entry.Attributes.Contains("objectClass") 
+            ? string.Join(",", entry.Attributes["objectClass"].ToArray()) 
+            : string.Empty;
         
         return new LdapGroup
         {
-            CommonName = GetAttributeValue(attr, "cn"),
-            Description = GetAttributeValue(attr, "description"),
-            GidNumber = GetIntAttributeValue(attr, "gidNumber"),
-            DistinguishedName = entry.Dn,
-            ObjectClass = GetAttributeValue(attr, "objectClass"),
+            CommonName = GetAttributeValue("cn"),
+            Description = GetAttributeValue("description"),
+            GidNumber = GetIntAttributeValue("gidNumber"),
+            DistinguishedName = entry.DistinguishedName,
+            ObjectClass = objectClass,
             IsActive = true,
             SyncedAt = DateTime.UtcNow
         };
-    }
-
-    private static string GetAttributeValue(LdapAttributeSet attributes, string name)
-    {
-        var attribute = attributes.GetAttribute(name);
-        return attribute?.StringValue ?? string.Empty;
-    }
-
-    private static int? GetIntAttributeValue(LdapAttributeSet attributes, string name)
-    {
-        var value = GetAttributeValue(attributes, name);
-        if (!string.IsNullOrEmpty(value) && int.TryParse(value, out var result))
-        {
-            return result;
-        }
-        return null;
     }
 }
