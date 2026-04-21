@@ -38,3 +38,26 @@ public class SyncResponseDto
     public int MembershipsProcessed { get; set; }
     public int ErrorsCount { get; set; }
 }
+
+public class SyncResultDto
+{
+    public string ConfigurationId { get; set; } = string.Empty;
+    public string ServerId { get; set; } = string.Empty;
+    public string ServerName { get; set; } = string.Empty;
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int UsersProcessed { get; set; }
+    public int GroupsProcessed { get; set; }
+    public int MembershipsProcessed { get; set; }
+    public int ErrorsCount { get; set; }
+}
+
+public class SyncAllResponseDto
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int TotalServers { get; set; }
+    public int SuccessfulSyncs { get; set; }
+    public int FailedSyncs { get; set; }
+    public IEnumerable<SyncResultDto> Results { get; set; } = new List<SyncResultDto>();
+}

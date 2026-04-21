@@ -89,6 +89,178 @@ public class SyncController : ControllerBase
     }
 
     /// <summary>
+    /// Ejecuta sincronización para todos los servidores activos con configuraciones habilitadas
+    /// </summary>
+    [HttpPost("execute-all-active")]
+    public async Task<ActionResult<SyncAllResponseDto>> ExecuteSyncForAllActiveServers([FromQuery] bool isDryRun = false)
+    {
+        try
+        {
+            var enabledConfigs = await _configRepository.GetEnabledConfigurationsAsync();
+            var configList = enabledConfigs.ToList();
+            
+            if (!configList.Any())
+            {
+                return Ok(new SyncAllResponseDto
+                {
+                    Success = true,
+                    Message = "No hay configuraciones habilitadas para sincronizar",
+                    TotalServers = 0,
+                    SuccessfulSyncs = 0,
+                    FailedSyncs = 0,
+                    Results = new List<SyncResultDto>()
+                });
+            }
+
+            var results = new List<SyncResultDto>();
+            int successfulSyncs = 0;
+            int failedSyncs = 0;
+
+            foreach (var config in configList)
+            {
+                try
+                {
+                    SyncLog log;
+                    if (config.SyncMode.ToLower() == "incremental")
+                    {
+                        log = await _syncService.ExecuteIncrementalSyncAsync(config.Id, isDryRun);
+                    }
+                    else
+                    {
+                        log = await _syncService.ExecuteFullSyncAsync(config.Id, isDryRun);
+                    }
+
+                    successfulSyncs++;
+                    results.Add(new SyncResultDto
+                    {
+                        ConfigurationId = config.Id,
+                        ServerId = config.ServerId,
+                        ServerName = config.Server?.Name ?? "Desconocido",
+                        Success = true,
+                        Message = isDryRun ? "Sincronización de prueba completada" : "Sincronización completada",
+                        UsersProcessed = log.UsersProcessed,
+                        GroupsProcessed = log.GroupsProcessed,
+                        MembershipsProcessed = log.MembershipsProcessed,
+                        ErrorsCount = log.ErrorsCount
+                    });
+                }
+                catch (Exception ex)
+                {
+                    failedSyncs++;
+                    results.Add(new SyncResultDto
+                    {
+                        ConfigurationId = config.Id,
+                        ServerId = config.ServerId,
+                        ServerName = config.Server?.Name ?? "Desconocido",
+                        Success = false,
+                        Message = $"Error durante la sincronización: {ex.Message}",
+                        UsersProcessed = 0,
+                        GroupsProcessed = 0,
+                        MembershipsProcessed = 0,
+                        ErrorsCount = 1
+                    });
+                }
+            }
+
+            return Ok(new SyncAllResponseDto
+            {
+                Success = true,
+                Message = $"Sincronización completada: {successfulSyncs} exitosas, {failedSyncs} fallidas",
+                TotalServers = configList.Count,
+                SuccessfulSyncs = successfulSyncs,
+                FailedSyncs = failedSyncs,
+                Results = results
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new SyncAllResponseDto
+            {
+                Success = false,
+                Message = $"Error general durante la sincronización: {ex.Message}",
+                TotalServers = 0,
+                SuccessfulSyncs = 0,
+                FailedSyncs = 0,
+                Results = new List<SyncResultDto>()
+            });
+        }
+    }
+
+    /// <summary>
+    /// Crea una configuración de sincronización poblada con las políticas del servidor
+    /// </summary>
+    [HttpPost("configurations/auto-from-server/{serverId}")]
+    public async Task<ActionResult<SyncConfigurationDto>> CreateConfigurationFromServerPolicies(string serverId)
+    {
+        try
+        {
+            var server = await _serverRepository.GetByIdAsync(serverId);
+            if (server == null)
+                return NotFound(new { message = "Servidor LDAP no encontrado" });
+
+            // Verificar si ya existe una configuración para este servidor
+            var existingConfig = await _configRepository.GetByServerIdAsync(serverId);
+            if (existingConfig != null)
+            {
+                return BadRequest(new { message = "Ya existe una configuración para este servidor" });
+            }
+
+            // Crear configuración con políticas basadas en el servidor
+            var config = new SyncConfiguration
+            {
+                ServerId = serverId,
+                Enabled = false, // Se crea deshabilitada por defecto
+                CronSchedule = "0 2 * * *", // Daily at 2 AM
+                SyncMode = "full",
+                SyncUsers = true,
+                SyncGroups = true,
+                SyncMemberships = true,
+                SyncPasswords = false,
+                SyncPasswordPolicies = true,
+                ForcePasswordResetDays = null,
+                DeactivateOrphanUsers = true,
+                DeleteOrphanGroups = false,
+                PageSize = 500,
+                MaxEntries = 0,
+                SearchBase = server.BaseDn,
+                ExcludedAttributes = null
+            };
+
+            var createdConfig = await _configRepository.AddAsync(config);
+
+            return Ok(new SyncConfigurationDto
+            {
+                Id = createdConfig.Id,
+                ServerId = createdConfig.ServerId,
+                Enabled = createdConfig.Enabled,
+                CronSchedule = createdConfig.CronSchedule,
+                SyncMode = createdConfig.SyncMode,
+                SyncUsers = createdConfig.SyncUsers,
+                SyncGroups = createdConfig.SyncGroups,
+                SyncMemberships = createdConfig.SyncMemberships,
+                SyncPasswords = createdConfig.SyncPasswords,
+                SyncPasswordPolicies = createdConfig.SyncPasswordPolicies,
+                ForcePasswordResetDays = createdConfig.ForcePasswordResetDays,
+                DeactivateOrphanUsers = createdConfig.DeactivateOrphanUsers,
+                DeleteOrphanGroups = createdConfig.DeleteOrphanGroups,
+                PageSize = createdConfig.PageSize,
+                MaxEntries = createdConfig.MaxEntries,
+                SearchBase = createdConfig.SearchBase,
+                ExcludedAttributes = createdConfig.ExcludedAttributes,
+                LastSync = createdConfig.LastSync,
+                LastSyncStatus = createdConfig.LastSyncStatus,
+                LastSyncError = createdConfig.LastSyncError,
+                CreatedAt = createdConfig.CreatedAt,
+                UpdatedAt = createdConfig.UpdatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error al crear configuración: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
     /// Obtiene los registros de sincronización recientes
     /// </summary>
     [HttpGet("logs")]
