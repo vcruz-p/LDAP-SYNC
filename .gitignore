@@ -1,44 +1,38 @@
 ```
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Dd]epends/
-[Mm]svc/
-# Visual Studio files
-*.user
-*.userosscache
-*.suo
-*.csproj.user
-*.vbproj.user
-*.fsproj.user
-*.userprefs
+# Build artifacts
 bin/
 obj/
-# Visual Studio Code files
-.vscode/
-.vs/
-# Build results
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-[Tt]emp/
-[Tt]emporaryGeneratedFile_*.cs
-[Tt]emporaryGeneratedFile_*.vb
-# User-specific files
-*.userprefs
-*.suo
-*.user
-*.userosscache
-# Environment specific settings
-appsettings.Production.json
-appsettings.Staging.json
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+
+# Dependencies
+packages/
+node_modules/
+
+# Logs
+*.log
+
+# Environment
 .env
 .env.local
-*.env
 *.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+coverage/
+htmlcov/
+*.coverage
+.testcoverage
 ```
