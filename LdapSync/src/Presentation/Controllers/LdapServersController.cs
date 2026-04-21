@@ -121,9 +121,9 @@ public class LdapServersController : ControllerBase
     public async Task<ActionResult<LdapServerDto>> CreateServer(
         [FromForm] string name,
         [FromForm] string host,
-        [FromForm] int port = 389,
         [FromForm] string baseDn,
         [FromForm] string bindDn,
+        [FromForm] int port = 389,
         [FromForm] string? bindPassword = null,
         [FromForm] bool useTls = false,
         [FromForm] bool validateCertificate = true,
