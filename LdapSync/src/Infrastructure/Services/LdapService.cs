@@ -1,8 +1,6 @@
 using System.DirectoryServices.Protocols;
 using System.Net;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Net.Security;
 using LdapSync.Domain.Entities;
 using LdapSync.Domain.Interfaces;
 
@@ -20,11 +18,6 @@ public class LdapService : ILdapService
             using var ldap = new LdapConnection(identifier, credential);
             ldap.SessionOptions.ProtocolVersion = 3;
             ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
-            
-            if (!server.ValidateCertificate)
-            {
-                ldap.SessionOptions.VerifyCertificate += (sender, certificate, chain, sslPolicyErrors) => true;
-            }
             
             if (server.UseTls)
             {
@@ -52,11 +45,6 @@ public class LdapService : ILdapService
             using var ldap = new LdapConnection(identifier, credential);
             ldap.SessionOptions.ProtocolVersion = 3;
             ldap.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
-            
-            if (!server.ValidateCertificate)
-            {
-                ldap.SessionOptions.VerifyCertificate += (sender, certificate, chain, sslPolicyErrors) => true;
-            }
             
             if (server.UseTls)
             {
@@ -111,11 +99,6 @@ public class LdapService : ILdapService
                 ldap.SessionOptions.StartTransportLayerSecurity(null);
             }
             
-            if (!server.ValidateCertificate)
-            {
-                // Certificate validation disabled
-            }
-            
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
             
             await Task.Run(() => ldap.Bind());
@@ -164,11 +147,6 @@ public class LdapService : ILdapService
             if (server.UseTls)
             {
                 ldap.SessionOptions.StartTransportLayerSecurity(null);
-            }
-            
-            if (!server.ValidateCertificate)
-            {
-                // Certificate validation disabled
             }
             
             ldap.Timeout = TimeSpan.FromSeconds(server.TimeoutSeconds);
