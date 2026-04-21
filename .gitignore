@@ -1,49 +1,39 @@
-```
 # Build artifacts
 bin/
 obj/
-*.dll
 *.exe
+*.dll
 *.pdb
-*.so
-*.dylib
-*.jar
-*.war
-*.class
+*.nupkg
 
 # Dependencies
 packages/
 node_modules/
-vendor/
 
 # Logs
 *.log
-logs/
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# OS generated files
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# IDE files
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Test and coverage
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Test coverage
 coverage/
 htmlcov/
 *.coverage
-.nyc_output/
 
 # Temporary files
 *.tmp
-*.temp
-*~
-```
+temp/
+tmp/
